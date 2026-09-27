@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const apiKeyRoutes = require('./routes/apiKeyRoutes');
+const productRoutes = require('./routes/productRoutes');
  
 connectDB();
 
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/api-keys', apiKeyRoutes);
+app.use('/api/products', productRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
