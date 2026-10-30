@@ -96,6 +96,11 @@ async function createInvoice(req, res, next) {
 // PUT /api/invoices/:id
 async function updateInvoice(req, res, next) {
   try {
+    const existing = await Invoice.findOne({ _id: req.params.id, owner: req.user._id });
+    if (!existing) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
     const {
       client,
       invoiceNumber,
@@ -109,35 +114,65 @@ async function updateInvoice(req, res, next) {
       status
     } = req.body;
 
+    // Jo cheez nahi bheji, uski purani value use hogi (taake totals zero na ho jayen)
+    const finalItems = items !== undefined ? items : existing.items;
+    const finalTax = taxRate !== undefined ? taxRate : existing.taxRate;
+    const finalDiscount = discountRate !== undefined ? discountRate : existing.discountRate;
+
     // ---------- TOTAL CALCULATE KAREIN ----------
-    const totals = calculateTotals(items || [], taxRate, discountRate);
+    const totals = calculateTotals(finalItems, finalTax, finalDiscount);
+
+    // Sirf wohi fields update hongi jo request mein aayi hain
+    const updates = {
+      client,
+      invoiceNumber,
+      currency,
+      invoiceDate,
+      dueDate,
+      items,
+      taxRate,
+      discountRate,
+      notes,
+      status,
+      subtotal: totals.subtotal,
+      discountAmount: totals.discountAmount,
+      taxAmount: totals.taxAmount,
+      total: totals.total
+    };
+    Object.keys(updates).forEach((key) => updates[key] === undefined && delete updates[key]);
 
     const invoice = await Invoice.findOneAndUpdate(
       { _id: req.params.id, owner: req.user._id },
-      {
-        client,
-        invoiceNumber,
-        currency,
-        invoiceDate,
-        dueDate,
-        items,
-        taxRate,
-        discountRate,
-        subtotal: totals.subtotal,
-        discountAmount: totals.discountAmount,
-        taxAmount: totals.taxAmount,
-        total: totals.total,
-        notes,
-        status
-      },
+      updates,
       { new: true, runValidators: true }
     );
-
-    if (!invoice) {
-      return res.status(404).json({ message: 'Invoice not found' });
-    }
-
     res.json(invoice);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/invoices/next-number
+async function getNextInvoiceNumber(req, res, next) {
+  try {
+    const FIRST_NUMBER = 'INV-1'; // pehla invoice isi se shuru hoga
+
+    const rows = await Invoice.find({ owner: req.user._id }).select('invoiceNumber');
+
+    let best = null;
+    rows.forEach((row) => {
+      const match = /^(.*?)(\d+)$/.exec(row.invoiceNumber || '');
+      if (!match) return;
+      const value = parseInt(match[2], 10);
+      if (!best || value > best.value) {
+        best = { prefix: match[1], digits: match[2], value };
+      }
+    });
+
+    if (!best) return res.json({ invoiceNumber: FIRST_NUMBER });
+
+    const nextDigits = String(best.value + 1).padStart(best.digits.length, '0');
+    res.json({ invoiceNumber: best.prefix + nextDigits });
   } catch (err) {
     next(err);
   }
@@ -159,5 +194,6 @@ module.exports = {
   getInvoice,
   createInvoice,
   updateInvoice,
-  deleteInvoice
+  deleteInvoice,
+  getNextInvoiceNumber
 };

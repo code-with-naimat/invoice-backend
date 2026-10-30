@@ -22,6 +22,16 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+
+    businessName: {
+      type: String,
+      trim: true,
+    },
+
+    businessAddress: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,

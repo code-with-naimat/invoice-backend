@@ -4,11 +4,13 @@ const {
   getInvoice,
   createInvoice,
   updateInvoice,
-  deleteInvoice
+  deleteInvoice,
+  getNextInvoiceNumber
 } = require('../controllers/invoiceController');
 const protect = require('../middleware/auth');
 const router = express.Router();
 router.use(protect);
+router.get('/next-number', getNextInvoiceNumber);
 router.route('/').get(getInvoices).post(createInvoice);
 router.route('/:id').get(getInvoice).put(updateInvoice).delete(deleteInvoice);
 module.exports = router;

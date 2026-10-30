@@ -33,4 +33,7 @@ const invoiceSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+// Ek user ke andar same invoiceNumber dobara nahi ban sakta
+invoiceSchema.index({ owner: 1, invoiceNumber: 1 }, { unique: true });
+
 module.exports = mongoose.model('Invoice', invoiceSchema);
